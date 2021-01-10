@@ -104,7 +104,7 @@ PerfData("perfdata",
   cl::cat(AggregatorCategory),
   cl::sub(*cl::AllSubCommands));
 
-static cl::opt<std::string>
+static cl::list<std::string>
 PerfDataList("perf-data-list",
   cl::CommaSeparated,
   cl::desc("list of perf.data files used as profile"),
@@ -163,20 +163,35 @@ void perf2boltMode(int argc, char **argv) {
       argc, argv,
       "perf2bolt - BOLT data aggregator\n"
       "\nEXAMPLE: perf2bolt -p=perf.data executable -o data.fdata\n");
-  if (opts::PerfData.empty()) {
-    errs() << ToolName << ": expected -perfdata=<filename> option.\n";
+  if (opts::PerfData.empty() && opts::PerfDataList.empty()) {
+    errs() << ToolName << ": expected -perfdata=<filename> or -perf-data-list=<filename1>,<filename2>... option.\n";
     exit(1);
   }
   if (!opts::InputDataFilename.empty()) {
     errs() << ToolName << ": unknown -data option.\n";
     exit(1);
   }
-  if (!sys::fs::exists(opts::PerfData))
-    report_error(opts::PerfData, errc::no_such_file_or_directory);
-  if (!DataAggregator::checkPerfDataMagic(opts::PerfData)) {
-    errs() << ToolName << ": '" << opts::PerfData
+ 
+  if (!opts::PerfDataList.empty()){
+    for (auto &P: opts::PerfDataList) {
+      if (!sys::fs::exists(P))
+        report_error(P, errc::no_such_file_or_directory);
+      if (!DataAggregator::checkPerfDataMagic(P)) {
+        errs() << ToolName << ": '" << P
            << "': expected valid perf.data file.\n";
-    exit(1);
+        exit(1);
+      }
+    }
+
+  }
+  else {
+    if (!sys::fs::exists(opts::PerfData))
+      report_error(opts::PerfData, errc::no_such_file_or_directory);
+    if (!DataAggregator::checkPerfDataMagic(opts::PerfData)) {
+      errs() << ToolName << ": '" << opts::PerfData
+           << "': expected valid perf.data file.\n";
+      exit(1);
+    }
   }
   if (opts::OutputFilename.empty()) {
     errs() << ToolName << ": expected -o=<output file> option.\n";
