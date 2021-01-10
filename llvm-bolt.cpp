@@ -104,6 +104,17 @@ PerfData("perfdata",
   cl::cat(AggregatorCategory),
   cl::sub(*cl::AllSubCommands));
 
+static cl::opt<std::string>
+PerfDataList("perf-data-list",
+  cl::CommaSeparated,
+  cl::desc("list of perf.data files used as profile"),
+  cl::value_desc("<data file1>,<data file2>,<data file3>..."),
+  cl::Optional,
+  cl::ZeroOrMore,
+  cl::cat(AggregatorCategory),
+  cl::sub(*cl::AllSubCommands));
+
+
 static cl::alias
 PerfDataA("p",
   cl::desc("alias for -perfdata"),
