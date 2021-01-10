@@ -219,7 +219,7 @@ void heatmapMode(int argc, char **argv) {
   if (!sys::fs::exists(opts::InputFilename))
     report_error(opts::InputFilename, errc::no_such_file_or_directory);
 
-  if (opts::PerfData.empty()) {
+  if (opts::PerfData.empty() && opts::PerfDataList.empty()) {
     errs() << ToolName << ": expected -perfdata=<filename> option.\n";
     exit(1);
   }
@@ -328,20 +328,33 @@ int main(int argc, char **argv) {
 
     if (auto *e = dyn_cast<ELFObjectFileBase>(&Binary)) {
       RewriteInstance RI(e, argc, argv, ToolPath);
-      if (!opts::PerfData.empty()) {
-        if (!opts::AggregateOnly) {
-          errs() << ToolName
-            << ": WARNING: reading perf data directly is unsupported, please use "
-            "-aggregate-only or perf2bolt.\n!!! Proceed on your own risk. !!!\n";
+      if (!opts::PerfDataList.empty()){
+        for (auto &P: opts::PerfDataList){
+          if (!opts::AggregateOnly) {
+            errs() << ToolName
+              << ": WARNING: reading perf data directly is unsupported, please use "
+              "-aggregate-only or perf2bolt.\n!!! Proceed on your own risk. !!!\n";
+          }
+          if (auto E = RI.setProfile(P))
+            report_error(P, std::move(E));
         }
-        if (auto E = RI.setProfile(opts::PerfData))
-          report_error(opts::PerfData, std::move(E));
+      }
+      else {
+        if (!opts::PerfData.empty()) {
+          if (!opts::AggregateOnly) {
+            errs() << ToolName
+              << ": WARNING: reading perf data directly is unsupported, please use "
+              "-aggregate-only or perf2bolt.\n!!! Proceed on your own risk. !!!\n";
+          }
+          if (auto E = RI.setProfile(opts::PerfData))
+            report_error(opts::PerfData, std::move(E));
+        }
       }
       if (!opts::InputDataFilename.empty()) {
         if (auto E = RI.setProfile(opts::InputDataFilename))
           report_error(opts::InputDataFilename, std::move(E));
       }
-      if (opts::AggregateOnly && opts::PerfData.empty()) {
+      if (opts::AggregateOnly && opts::PerfData.empty() && opts::PerfDataList.empty()) {
         errs() << ToolName << ": missing required -perfdata option.\n";
         exit(1);
       }
