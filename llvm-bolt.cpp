@@ -337,6 +337,15 @@ int main(int argc, char **argv) {
           }
           if (auto E = RI.setProfile(P))
             report_error(P, std::move(E));
+          if (!opts::InputDataFilename.empty()) {
+            if (auto E = RI.setProfile(opts::InputDataFilename))
+            report_error(opts::InputDataFilename, std::move(E));
+          }
+          if (opts::AggregateOnly && opts::PerfData.empty() && opts::PerfDataList.empty()) {
+            errs() << ToolName << ": missing required -perfdata option.\n";
+            exit(1);
+          }
+          RI.run();
         }
       }
       else {
@@ -348,6 +357,15 @@ int main(int argc, char **argv) {
           }
           if (auto E = RI.setProfile(opts::PerfData))
             report_error(opts::PerfData, std::move(E));
+          if (!opts::InputDataFilename.empty()) {
+            if (auto E = RI.setProfile(opts::InputDataFilename))
+            report_error(opts::InputDataFilename, std::move(E));
+          }
+          if (opts::AggregateOnly && opts::PerfData.empty() && opts::PerfDataList.empty()) {
+            errs() << ToolName << ": missing required -perfdata option.\n";
+            exit(1);
+          }
+          RI.run();
         }
       }
       if (!opts::InputDataFilename.empty()) {
