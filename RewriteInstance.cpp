@@ -2878,14 +2878,10 @@ void RewriteInstance::buildFunctionsCFG() {
           BF.print(outs(), "while building cfg", true);
       };
 
-  errs()<<"yyyyyyyyyyyyyyyyyyyy\n";
-
   ParallelUtilities::PredicateTy SkipPredicate =
       [&](const BinaryFunction &BF) {
         return !shouldDisassemble(BF) || !BF.isSimple();
       };
-
-  errs()<<"zzzzzzzzzzzzzzzzzzz\n";
 
   ParallelUtilities::runOnEachFunctionWithUniqueAllocId(
       *BC, ParallelUtilities::SchedulingPolicy::SP_INST_LINEAR, WorkFun,
