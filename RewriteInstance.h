@@ -53,6 +53,8 @@ public:
                   StringRef ToolPath);
   ~RewriteInstance();
 
+  int numPerfData;
+
   /// Assign profile from \p Filename to this instance.
   Error setProfile(StringRef Filename);
 

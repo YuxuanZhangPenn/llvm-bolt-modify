@@ -471,6 +471,7 @@ RewriteInstance::RewriteInstance(ELFObjectFileBase *File, const int Argc,
     : InputFile(File), Argc(Argc), Argv(Argv), ToolPath(ToolPath),
       SHStrTab(StringTableBuilder::ELF) {
   auto ELF64LEFile = dyn_cast<ELF64LEObjectFile>(InputFile);
+  numPerfData = 0;
   if (!ELF64LEFile) {
     errs() << "BOLT-ERROR: only 64-bit LE ELF binaries are supported\n";
     exit(1);
@@ -796,15 +797,19 @@ void RewriteInstance::run() {
          << "\n";
   outs() << "BOLT-INFO: BOLT version: " << BoltRevision << "\n";
 
-  discoverStorage();
-  readSpecialSections();
+  numPerfData++;
+  if (numPerfData==1){
+    discoverStorage();
+    readSpecialSections();
+  }
+
   adjustCommandLineOptions();
   discoverFileObjects();
-
   preprocessProfileData();
 
   // Skip disassembling if we have a translation table and we are running an
   // aggregation job.
+
   if (opts::AggregateOnly && BAT->enabledFor(InputFile)) {
     processProfileData();
     return;
@@ -813,17 +818,21 @@ void RewriteInstance::run() {
   selectFunctionsToProcess();
 
   readDebugInfo();
-
+  
   disassembleFunctions();
 
   processProfileDataPreCFG();
 
   buildFunctionsCFG();
-
+ 
   processProfileData();
 
-  postProcessFunctions();
+  if (opts::AggregateOnly) {
+    return;
+  }
 
+  postProcessFunctions();
+ 
   if (opts::DiffOnly)
     return;
 
@@ -837,7 +846,6 @@ void RewriteInstance::run() {
     errs() << "BOLT-WARNING: not writing the output file for Linux Kernel\n";
     return;
   }
-
   // Rewrite allocatable contents and copy non-allocatable parts with mods.
   rewriteFile();
 }
@@ -2749,9 +2757,9 @@ void RewriteInstance::processProfileData() {
   // Release memory used by profile reader.
   ProfileReader.reset();
 
-  if (opts::AggregateOnly) {
-    exit(0);
-  }
+//  if (opts::AggregateOnly) {
+//    exit(0);
+//  }
 }
 
 void RewriteInstance::disassembleFunctions() {
@@ -2870,10 +2878,14 @@ void RewriteInstance::buildFunctionsCFG() {
           BF.print(outs(), "while building cfg", true);
       };
 
+  errs()<<"yyyyyyyyyyyyyyyyyyyy\n";
+
   ParallelUtilities::PredicateTy SkipPredicate =
       [&](const BinaryFunction &BF) {
         return !shouldDisassemble(BF) || !BF.isSimple();
       };
+
+  errs()<<"zzzzzzzzzzzzzzzzzzz\n";
 
   ParallelUtilities::runOnEachFunctionWithUniqueAllocId(
       *BC, ParallelUtilities::SchedulingPolicy::SP_INST_LINEAR, WorkFun,

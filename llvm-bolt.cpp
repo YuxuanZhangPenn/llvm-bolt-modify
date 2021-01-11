@@ -345,7 +345,9 @@ int main(int argc, char **argv) {
             errs() << ToolName << ": missing required -perfdata option.\n";
             exit(1);
           }
+          errs()<<"@@@@@@@@ @@@@@@@@@\n";
           RI.run();
+          errs()<<"###### ######\n";
         }
       }
       else {
