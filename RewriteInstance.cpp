@@ -540,7 +540,7 @@ Error RewriteInstance::setMultipleProfile(std::vector<StringRef> Filenames) {
   }
 */
 
-  ProfileReader = llvm::make_unique<DataAggregator>(Filename);
+  //ProfileReader = llvm::make_unique<DataAggregator>(Filename);
   return Error::success();
 }
 

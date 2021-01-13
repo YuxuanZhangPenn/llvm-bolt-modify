@@ -54,6 +54,8 @@ class ProfileReaderBase {
 protected:
   /// Name of the file with profile.
   std::string Filename;
+  bool hasPerfDataList;
+  std::vector<std::string> Filenames;
 
 public:
   ProfileReaderBase() = delete;
@@ -64,7 +66,12 @@ public:
 
   /// Construct a reader for a given file.
   explicit ProfileReaderBase(StringRef Filename)
-    : Filename(Filename) {}
+    : Filename(Filename) {hasPerfDataList = false;}
+
+  explicit ProfileReaderBase(std::vector<StringRef> Filenames){
+    hasPerfDataList = true;
+    Filenames = Filenames;
+  }
 
   virtual ~ProfileReaderBase() = default;
 
