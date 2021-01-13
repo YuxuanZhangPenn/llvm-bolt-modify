@@ -504,24 +504,47 @@ Error RewriteInstance::setProfile(StringRef Filename) {
   if (!sys::fs::exists(Filename))
     return errorCodeToError(make_error_code(errc::no_such_file_or_directory));
 
+  /*if (ProfileReader) {
+    // Already exists
+    return make_error<StringError>(
+        Twine("multiple profiles specified: ") + ProfileReader->getFilename() +
+        " and " + Filename, inconvertibleErrorCode());
+  }*/
+  errs()<<"@@@@@"+Filename+"\n";
+  // Spawn a profile reader based on file contents.
+  if (DataAggregator::checkPerfDataMagic(Filename)) {
+    errs()<<"^^^^^^^^^^^^^^^\n";
+    ProfileReader = llvm::make_unique<DataAggregator>(Filename);
+    errs()<<"xxxxxxxxxxxxxxx\n";
+  } else if (YAMLProfileReader::isYAML(Filename)) {
+    ProfileReader = llvm::make_unique<YAMLProfileReader>(Filename);
+  } else {
+    ProfileReader = llvm::make_unique<DataReader>(Filename);
+  }
+  return Error::success();
+}
+
+
+Error RewriteInstance::setMultipleProfile(std::vector<StringRef> Filenames) {
+  for (auto &Filename: Filenames){
+    if (!sys::fs::exists(Filename))
+      return errorCodeToError(make_error_code(errc::no_such_file_or_directory));
+  }
+
+/*
   if (ProfileReader) {
     // Already exists
     return make_error<StringError>(
         Twine("multiple profiles specified: ") + ProfileReader->getFilename() +
         " and " + Filename, inconvertibleErrorCode());
   }
+*/
 
-  // Spawn a profile reader based on file contents.
-  if (DataAggregator::checkPerfDataMagic(Filename)) {
-    ProfileReader = llvm::make_unique<DataAggregator>(Filename);
-  } else if (YAMLProfileReader::isYAML(Filename)) {
-    ProfileReader = llvm::make_unique<YAMLProfileReader>(Filename);
-  } else {
-    ProfileReader = llvm::make_unique<DataReader>(Filename);
-  }
-
+  ProfileReader = llvm::make_unique<DataAggregator>(Filename);
   return Error::success();
 }
+
+
 
 /// Return true if the function \p BF should be disassembled.
 static bool shouldDisassemble(const BinaryFunction &BF) {

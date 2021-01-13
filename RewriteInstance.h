@@ -57,6 +57,7 @@ public:
 
   /// Assign profile from \p Filename to this instance.
   Error setProfile(StringRef Filename);
+  Error setMultipleProfile(std::vector<StringRef> Filenames);
 
   /// Run all the necessary steps to read, optimize and rewrite the binary.
   void run();

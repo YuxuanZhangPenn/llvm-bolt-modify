@@ -326,29 +326,36 @@ int main(int argc, char **argv) {
       report_error(opts::InputFilename, std::move(E));
     Binary &Binary = *BinaryOrErr.get().getBinary();
 
+
     if (auto *e = dyn_cast<ELFObjectFileBase>(&Binary)) {
       RewriteInstance RI(e, argc, argv, ToolPath);
+      std::vector<StringRef> PerfDataFilenames;
       if (!opts::PerfDataList.empty()){
         for (auto &P: opts::PerfDataList){
-          if (!opts::AggregateOnly) {
-            errs() << ToolName
-              << ": WARNING: reading perf data directly is unsupported, please use "
-              "-aggregate-only or perf2bolt.\n!!! Proceed on your own risk. !!!\n";
-          }
-          if (auto E = RI.setProfile(P))
-            report_error(P, std::move(E));
-          if (!opts::InputDataFilename.empty()) {
-            if (auto E = RI.setProfile(opts::InputDataFilename))
-            report_error(opts::InputDataFilename, std::move(E));
-          }
-          if (opts::AggregateOnly && opts::PerfData.empty() && opts::PerfDataList.empty()) {
-            errs() << ToolName << ": missing required -perfdata option.\n";
-            exit(1);
-          }
-          errs()<<"@@@@@@@@ @@@@@@@@@\n";
-          RI.run();
-          errs()<<"###### ######\n";
+          PerfDataFilenames.push_back(P);
         }
+        if (!opts::AggregateOnly) {
+          errs() << ToolName
+            << ": WARNING: reading perf data directly is unsupported, please use "
+            "-aggregate-only or perf2bolt.\n!!! Proceed on your own risk. !!!\n";
+        }
+        //errs()<<"kkkkkkkkkkkkkkkkk\n"; 
+        //if (auto E = RI.setMultipleProfile(PerfDataFilenames))
+        //  report_error(P, std::move(E));
+        //errs()<<"****************\n";
+        RI.setMultipleProfile(PerfDataFilenames);
+        if (!opts::InputDataFilename.empty()) {
+          if (auto E = RI.setProfile(opts::InputDataFilename))
+          report_error(opts::InputDataFilename, std::move(E));
+        }
+        if (opts::AggregateOnly && opts::PerfData.empty() && opts::PerfDataList.empty()) {
+          errs() << ToolName << ": missing required -perfdata option.\n";
+          exit(1);
+        }
+//          errs()<<"@@@@@@@@ @@@@@@@@@\n";
+//          RI.run();
+//          errs()<<"###### ######\n";
+        RI.run();
       }
       else {
         if (!opts::PerfData.empty()) {
