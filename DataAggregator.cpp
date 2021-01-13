@@ -185,9 +185,17 @@ void DataAggregator::findPerfExecutable() {
 }
 
 void DataAggregator::start() {
-  outs() << "PERF2BOLT: Starting data aggregation job for " << Filename
+  if (!hasPerfDataList){
+    outs() << "PERF2BOLT: Starting data aggregation job for " << Filename
          << "\n";
-
+  }
+  else {
+    outs() <<  "PERF2BOLT: Starting data aggregation job for " ;
+    for (unsigned int i=0; i<Filenames.size(); i++){
+      outs()<< Filenames[i]<<", ";
+    }
+    outs() << "\n";
+  }
   // Don't launch perf for pre-aggregated files
   if (opts::ReadPreAggregated)
     return;
@@ -222,6 +230,7 @@ void DataAggregator::start() {
                     TaskEventsPPI,
                     "script --show-task-events",
                     /*Wait = */false);
+
 }
 
 void DataAggregator::abort() {
@@ -243,68 +252,136 @@ void DataAggregator::abort() {
 
 void DataAggregator::launchPerfProcess(StringRef Name, PerfProcessInfo &PPI,
                                        const char *ArgsString, bool Wait) {
-  SmallVector<const char*, 4> Argv;
+  if (hasPerfDataList){
+    for (auto &Fname: Filenames){
+      SmallVector<const char*, 4> Argv;
 
-  outs() << "PERF2BOLT: spawning perf job to read " << Name << '\n';
-  Argv.push_back(PerfPath.data());
+      outs() << "PERF2BOLT: spawning perf job to read " << Name << '\n';
+      Argv.push_back(PerfPath.data());
 
-  auto *WritableArgsString = strdup(ArgsString);
-  auto *Str = WritableArgsString;
-  do {
-    Argv.push_back(Str);
-    while (*Str && *Str != ' ')
-      ++Str;
-    if (!*Str)
-      break;
-    *Str++ = 0;
-  } while (true);
+      auto *WritableArgsString = strdup(ArgsString);
+      auto *Str = WritableArgsString;
+      do {
+        Argv.push_back(Str);
+        while (*Str && *Str != ' ')
+          ++Str;
+        if (!*Str)
+          break;
+        *Str++ = 0;
+      } while (true);
 
-  Argv.push_back("-f");
-  Argv.push_back("-i");
-  Argv.push_back(Filename.c_str());
-  Argv.push_back(nullptr);
+      Argv.push_back("-f");
+      Argv.push_back("-i");
+      Argv.push_back(Fname.c_str());
+      Argv.push_back(nullptr);
 
-  if (auto Errc = sys::fs::createTemporaryFile("perf.script", "out",
+      if (auto Errc = sys::fs::createTemporaryFile("perf.script", "out",
+                                                 PPI.StdoutPath)) {
+        errs() << "PERF2BOLT: failed to create temporary file "
+               << PPI.StdoutPath << " with error " << Errc.message()
+               << "\n";
+        exit(1);
+      }
+      TempFiles.push_back(PPI.StdoutPath.data());
+
+      if (auto Errc = sys::fs::createTemporaryFile("perf.script", "err",
+                                                 PPI.StderrPath)) {
+        errs() << "PERF2BOLT: failed to create temporary file "
+               << PPI.StderrPath << " with error " << Errc.message() << "\n";
+        exit(1);
+      }
+      TempFiles.push_back(PPI.StderrPath.data());
+
+      Optional<StringRef> Redirects[] = {
+          llvm::None,                        // Stdin
+          StringRef(PPI.StdoutPath.data()),  // Stdout
+          StringRef(PPI.StderrPath.data())}; // Stderr
+
+      DEBUG({
+          dbgs() << "Launching perf: ";
+          for (const char *Arg : Argv)
+            dbgs() << Arg << " ";
+            dbgs() << " 1> "
+                   << PPI.StdoutPath.data() << " 2> "
+                   << PPI.StderrPath.data() << "\n";
+      });
+
+      if (Wait) {
+        PPI.PI.ReturnCode =
+          sys::ExecuteAndWait(PerfPath.data(), Argv.data(), /*envp*/ nullptr,
+                              Redirects);
+      } else {
+        PPI.PI = sys::ExecuteNoWait(PerfPath.data(), Argv.data(), /*envp*/ nullptr,
+                                    Redirects);
+      } 
+
+      free(WritableArgsString);
+    }
+  }
+  else {
+    SmallVector<const char*, 4> Argv;
+
+    outs() << "PERF2BOLT: spawning perf job to read " << Name << '\n';
+    Argv.push_back(PerfPath.data());
+
+    auto *WritableArgsString = strdup(ArgsString);
+    auto *Str = WritableArgsString;
+    do {
+      Argv.push_back(Str);
+      while (*Str && *Str != ' ')
+        ++Str;
+      if (!*Str)
+        break;
+      *Str++ = 0;
+    } while (true);
+
+    Argv.push_back("-f");
+    Argv.push_back("-i");
+    Argv.push_back(Filename.c_str());
+    Argv.push_back(nullptr);
+
+    if (auto Errc = sys::fs::createTemporaryFile("perf.script", "out",
                                                PPI.StdoutPath)) {
-    errs() << "PERF2BOLT: failed to create temporary file "
-           << PPI.StdoutPath << " with error " << Errc.message()
-           << "\n";
-    exit(1);
-  }
-  TempFiles.push_back(PPI.StdoutPath.data());
+      errs() << "PERF2BOLT: failed to create temporary file "
+             << PPI.StdoutPath << " with error " << Errc.message()
+             << "\n";
+      exit(1);
+    }
+    TempFiles.push_back(PPI.StdoutPath.data());
 
-  if (auto Errc = sys::fs::createTemporaryFile("perf.script", "err",
+    if (auto Errc = sys::fs::createTemporaryFile("perf.script", "err",
                                                PPI.StderrPath)) {
-    errs() << "PERF2BOLT: failed to create temporary file "
-           << PPI.StderrPath << " with error " << Errc.message() << "\n";
-    exit(1);
+      errs() << "PERF2BOLT: failed to create temporary file "
+             << PPI.StderrPath << " with error " << Errc.message() << "\n";
+      exit(1);
+    }
+    TempFiles.push_back(PPI.StderrPath.data());
+
+    Optional<StringRef> Redirects[] = {
+        llvm::None,                        // Stdin
+        StringRef(PPI.StdoutPath.data()),  // Stdout
+        StringRef(PPI.StderrPath.data())}; // Stderr
+
+    DEBUG({
+        dbgs() << "Launching perf: ";
+        for (const char *Arg : Argv)
+          dbgs() << Arg << " ";
+        dbgs() << " 1> "
+               << PPI.StdoutPath.data() << " 2> "
+               << PPI.StderrPath.data() << "\n";
+      });
+
+    if (Wait) {
+      PPI.PI.ReturnCode =
+        sys::ExecuteAndWait(PerfPath.data(), Argv.data(), /*envp*/ nullptr,
+                            Redirects);
+    } else {
+      PPI.PI = sys::ExecuteNoWait(PerfPath.data(), Argv.data(), /*envp*/ nullptr,
+                                  Redirects);
+    }
+
+    free(WritableArgsString);
   }
-  TempFiles.push_back(PPI.StderrPath.data());
-
-  Optional<StringRef> Redirects[] = {
-      llvm::None,                        // Stdin
-      StringRef(PPI.StdoutPath.data()),  // Stdout
-      StringRef(PPI.StderrPath.data())}; // Stderr
-
-  DEBUG({
-      dbgs() << "Launching perf: ";
-      for (const char *Arg : Argv)
-        dbgs() << Arg << " ";
-      dbgs() << " 1> "
-             << PPI.StdoutPath.data() << " 2> "
-             << PPI.StderrPath.data() << "\n";
-    });
-
-  if (Wait) {
-    PPI.PI.ReturnCode =
-      sys::ExecuteAndWait(PerfPath.data(), Argv.data(), /*envp*/ nullptr,
-                          Redirects);
-  } else {
-    PPI.PI = sys::ExecuteNoWait(PerfPath.data(), Argv.data(), /*envp*/ nullptr,
-                                Redirects);
-  }
-
-  free(WritableArgsString);
 }
 
 void DataAggregator::processFileBuildID(StringRef FileBuildID) {

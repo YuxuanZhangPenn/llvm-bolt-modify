@@ -58,6 +58,11 @@ public:
     start();
   }
 
+  explicit DataAggregator(std::vector<StringRef> Filenames)
+      : DataReader(Filenames) {
+    start();
+  }
+
   ~DataAggregator();
 
   StringRef getReaderName() const override {

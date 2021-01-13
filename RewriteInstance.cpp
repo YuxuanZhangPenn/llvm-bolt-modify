@@ -513,9 +513,7 @@ Error RewriteInstance::setProfile(StringRef Filename) {
   errs()<<"@@@@@"+Filename+"\n";
   // Spawn a profile reader based on file contents.
   if (DataAggregator::checkPerfDataMagic(Filename)) {
-    errs()<<"^^^^^^^^^^^^^^^\n";
     ProfileReader = llvm::make_unique<DataAggregator>(Filename);
-    errs()<<"xxxxxxxxxxxxxxx\n";
   } else if (YAMLProfileReader::isYAML(Filename)) {
     ProfileReader = llvm::make_unique<YAMLProfileReader>(Filename);
   } else {
@@ -539,8 +537,7 @@ Error RewriteInstance::setMultipleProfile(std::vector<StringRef> Filenames) {
         " and " + Filename, inconvertibleErrorCode());
   }
 */
-
-  //ProfileReader = llvm::make_unique<DataAggregator>(Filename);
+  ProfileReader = llvm::make_unique<DataAggregator>(Filenames);
   return Error::success();
 }
 

@@ -68,9 +68,11 @@ public:
   explicit ProfileReaderBase(StringRef Filename)
     : Filename(Filename) {hasPerfDataList = false;}
 
-  explicit ProfileReaderBase(std::vector<StringRef> Filenames){
+  explicit ProfileReaderBase(std::vector<StringRef> filenames){
     hasPerfDataList = true;
-    Filenames = Filenames;
+    for (unsigned int i=0; i<filenames.size(); i++){
+      Filenames.push_back(filenames[i]);
+    }
   }
 
   virtual ~ProfileReaderBase() = default;
