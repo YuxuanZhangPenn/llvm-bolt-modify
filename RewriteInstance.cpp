@@ -822,9 +822,9 @@ void RewriteInstance::run() {
     discoverStorage();
     readSpecialSections();
   }
-
   adjustCommandLineOptions();
   discoverFileObjects();
+
   preprocessProfileData();
 
   // Skip disassembling if we have a translation table and we are running an
@@ -834,7 +834,6 @@ void RewriteInstance::run() {
     processProfileData();
     return;
   }
-
   selectFunctionsToProcess();
 
   readDebugInfo();
@@ -2726,16 +2725,16 @@ void RewriteInstance::preprocessProfileData() {
 
   outs() << "BOLT-INFO: pre-processing profile using "
          << ProfileReader->getReaderName() << '\n';
-
+  
   if (BAT->enabledFor(InputFile)) {
     outs() << "BOLT-INFO: profile collection done on a binary already "
               "processed by BOLT\n";
     ProfileReader->setBAT(&*BAT);
   }
-
+  errs() << "iiiiiiiiiiiiiiiiiii\n";
   if (auto E = ProfileReader->preprocessProfile(*BC.get()))
     report_error("cannot pre-process profile", std::move(E));
-
+  errs() << "vvvvvvvvvvvvvvvvvvvvvv\n";
   if (!BC->hasSymbolsWithFileName() &&
       ProfileReader->hasLocalsWithFileName() &&
       !opts::AllowStripped) {
