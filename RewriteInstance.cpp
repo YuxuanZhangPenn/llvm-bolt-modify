@@ -510,7 +510,7 @@ Error RewriteInstance::setProfile(StringRef Filename) {
         Twine("multiple profiles specified: ") + ProfileReader->getFilename() +
         " and " + Filename, inconvertibleErrorCode());
   }*/
-  errs()<<"@@@@@"+Filename+"\n";
+
   // Spawn a profile reader based on file contents.
   if (DataAggregator::checkPerfDataMagic(Filename)) {
     ProfileReader = llvm::make_unique<DataAggregator>(Filename);

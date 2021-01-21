@@ -202,8 +202,6 @@ void DataAggregator::start() {
 
   findPerfExecutable();
 
-  errs()<<"@@@@@"<<MainEventsPPIs.size()<<"\n";
-
   if (opts::BasicAggregation) {
     launchPerfProcess("events without LBR",
                       MainEventsPPIs,
