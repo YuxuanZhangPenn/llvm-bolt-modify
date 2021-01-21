@@ -276,6 +276,7 @@ void FuncMemData::update(const Location &Offset, const Location &Addr) {
 }
 
 Error DataReader::preprocessProfile(BinaryContext &BC) {
+
   if (auto EC = parseInput()) {
     return errorCodeToError(EC);
   }
