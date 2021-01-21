@@ -582,7 +582,6 @@ void DataAggregator::filterBinaryMMapInfo() {
 }
 
 Error DataAggregator::preprocessProfile(BinaryContext &BC) {
-  errs()<<"$$$$$$$$$$$$$$$$$$$$$$\n";
   this->BC = &BC;
 
   if (opts::ReadPreAggregated) {
