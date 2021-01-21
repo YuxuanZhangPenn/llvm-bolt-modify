@@ -2731,10 +2731,9 @@ void RewriteInstance::preprocessProfileData() {
               "processed by BOLT\n";
     ProfileReader->setBAT(&*BAT);
   }
-  errs() << "iiiiiiiiiiiiiiiiiii\n";
   if (auto E = ProfileReader->preprocessProfile(*BC.get()))
     report_error("cannot pre-process profile", std::move(E));
-  errs() << "vvvvvvvvvvvvvvvvvvvvvv\n";
+
   if (!BC->hasSymbolsWithFileName() &&
       ProfileReader->hasLocalsWithFileName() &&
       !opts::AllowStripped) {
