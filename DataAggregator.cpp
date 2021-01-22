@@ -635,8 +635,7 @@ Error DataAggregator::preprocessProfile(BinaryContext &BC) {
     Line = 1;
   };
 
-  for (unsigned int i=0; i<MMapEventsPPIs.size(); i++){
-    if (opts::LinuxKernelMode) {
+  if (opts::LinuxKernelMode) {
       // Current MMap parsing logic does not work with linux kernel.
       // MMap entries for linux kernel uses PERF_RECORD_MMAP
       // format instead of typical PERF_RECORD_MMAP2 format.
@@ -651,7 +650,8 @@ Error DataAggregator::preprocessProfile(BinaryContext &BC) {
       // interrupts. Therefore, we cannot ignore interrupt
       // in Linux kernel mode.
       opts::IgnoreInterruptLBR = false;
-    } else {
+  } else {
+    for (unsigned int i=0; i<MMapEventsPPIs.size(); i++){
       prepareToParse("mmap events", MMapEventsPPIs[i]);
       if (parseMMapEvents()) {
         errs() << "PERF2BOLT: failed to parse mmap events\n";
@@ -660,7 +660,7 @@ Error DataAggregator::preprocessProfile(BinaryContext &BC) {
   }
 
   for (unsigned int i=0; i<TaskEventsPPIs.size(); i++){
-    prepareToParse("task events", TaskEventsPPIs[i]);
+    prepareToParse("task events", TaskEventsPPIs[i]);  
     if (parseTaskEvents()) {
       errs() << "PERF2BOLT: failed to parse task events\n";
     }
@@ -669,21 +669,21 @@ Error DataAggregator::preprocessProfile(BinaryContext &BC) {
   for (unsigned int i=0; i<MainEventsPPIs.size(); i++){
     filterBinaryMMapInfo();
     prepareToParse("events", MainEventsPPIs[i]);
-  }
 
-  if (opts::HeatmapMode) {
-    if (auto EC = printLBRHeatMap()) {
-      errs() << "ERROR: failed to print heat map: " << EC.message() << '\n';
-      exit(1);
+
+    if (opts::HeatmapMode) {
+      if (auto EC = printLBRHeatMap()) {
+        errs() << "ERROR: failed to print heat map: " << EC.message() << '\n';
+        exit(1);
+      }
+      exit(0);
     }
-    exit(0);
-  }
 
-  if ((!opts::BasicAggregation && parseBranchEvents()) ||
-      (opts::BasicAggregation && parseBasicEvents())) {
-    errs() << "PERF2BOLT: failed to parse samples\n";
+    if ((!opts::BasicAggregation && parseBranchEvents()) ||
+       (opts::BasicAggregation && parseBasicEvents())) {
+      errs() << "PERF2BOLT: failed to parse samples\n";
+    }
   }
-
   // We can finish early if the goal is just to generate data for autofdo
   if (opts::WriteAutoFDOData) {
     if (std::error_code EC = writeAutoFDOData(opts::OutputFilename)) {
@@ -2095,12 +2095,12 @@ std::error_code DataAggregator::parseMMapEvents() {
   outs() << "PERF2BOLT: parsing perf-script mmap events output\n";
   NamedRegionTimer T("parseMMapEvents", "Parsing mmap events", TimerGroupName,
                      TimerGroupDesc, opts::TimeAggregator);
-
   std::multimap<StringRef, MMapInfo> GlobalMMapInfo;
   while (hasData()) {
     auto FileMMapInfoRes = parseMMapEvent();
     if (std::error_code EC = FileMMapInfoRes.getError())
       return EC;
+
 
     auto FileMMapInfo = FileMMapInfoRes.get();
     if (FileMMapInfo.second.PID == -1)
@@ -2108,6 +2108,7 @@ std::error_code DataAggregator::parseMMapEvents() {
 
     // Consider only the first mapping of the file for any given PID
     bool PIDExists = false;
+
     auto Range = GlobalMMapInfo.equal_range(FileMMapInfo.first);
     for (auto MI = Range.first; MI != Range.second; ++MI) {
       if (MI->second.PID == FileMMapInfo.second.PID) {
@@ -2117,8 +2118,9 @@ std::error_code DataAggregator::parseMMapEvents() {
     }
     if (PIDExists)
       continue;
-
+  
     GlobalMMapInfo.insert(FileMMapInfo);
+
   }
 
   DEBUG(
@@ -2184,6 +2186,7 @@ std::error_code DataAggregator::parseMMapEvents() {
 
   return std::error_code();
 }
+
 
 std::error_code DataAggregator::parseTaskEvents() {
   outs() << "PERF2BOLT: parsing perf-script task events output\n";

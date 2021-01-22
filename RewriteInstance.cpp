@@ -824,7 +824,7 @@ void RewriteInstance::run() {
   }
   adjustCommandLineOptions();
   discoverFileObjects();
-
+  errs()<<"*********************\n";
   preprocessProfileData();
 
   // Skip disassembling if we have a translation table and we are running an
@@ -834,6 +834,7 @@ void RewriteInstance::run() {
     processProfileData();
     return;
   }
+
   selectFunctionsToProcess();
 
   readDebugInfo();
