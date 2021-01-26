@@ -519,6 +519,7 @@ Error RewriteInstance::setProfile(StringRef Filename) {
   } else {
     ProfileReader = llvm::make_unique<DataReader>(Filename);
   }
+  
   return Error::success();
 }
 
